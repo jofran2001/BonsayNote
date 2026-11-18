@@ -7,6 +7,7 @@ interface AuthContextData {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
+  loginWithGoogle: (payload: { accessToken?: string; credential?: string }) => Promise<void>;
   logout: () => void;
 }
 
@@ -49,13 +50,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(res.user);
   };
 
+  const loginWithGoogle = async (payload: {
+    accessToken?: string;
+    credential?: string;
+  }) => {
+    const res = await api.auth.googleLogin(payload);
+    setStoredToken(res.token);
+    setUser(res.user);
+  };
+
   const logout = () => {
     setStoredToken(null);
     setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider
+      value={{ user, loading, login, register, loginWithGoogle, logout }}
+    >
       {children}
     </AuthContext.Provider>
   );
@@ -64,4 +76,3 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 export function useAuth(): AuthContextData {
   return useContext(AuthContext);
 }
-

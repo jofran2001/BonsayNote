@@ -87,6 +87,7 @@ app.post('/api/auth/register', async (req: Request, res: Response) => {
       id: createdUser._id.toString(),
       name: createdUser.name,
       email: createdUser.email,
+      avatarUrl: createdUser.avatarUrl,
     };
     const token = signToken(userPayload);
 
@@ -115,6 +116,14 @@ app.post('/api/auth/login', async (req: Request, res: Response) => {
       return;
     }
 
+    if (!user.passwordHash) {
+      res.status(400).json({
+        message:
+          'Esta conta foi criada via Google. Utilize o botão "Continuar com Google" para entrar.',
+      });
+      return;
+    }
+
     const validPassword = await bcrypt.compare(String(password), user.passwordHash);
     if (!validPassword) {
       res.status(401).json({ message: 'E-mail ou senha incorretos.' });
@@ -125,6 +134,7 @@ app.post('/api/auth/login', async (req: Request, res: Response) => {
       id: user._id.toString(),
       name: user.name,
       email: user.email,
+      avatarUrl: user.avatarUrl,
     };
     const token = signToken(userPayload);
 
@@ -132,6 +142,110 @@ app.post('/api/auth/login', async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Erro em POST /api/auth/login:', error);
     res.status(500).json({ message: 'Erro interno ao realizar login.' });
+  }
+});
+
+// POST /api/auth/google
+app.post('/api/auth/google', async (req: Request, res: Response) => {
+  try {
+    const { accessToken, credential } = req.body;
+
+    if (!accessToken && !credential) {
+      res.status(400).json({ message: 'Token do Google não fornecido.' });
+      return;
+    }
+
+    let googleProfile: {
+      sub: string;
+      email: string;
+      email_verified?: boolean | string;
+      name?: string;
+      picture?: string;
+      aud?: string;
+    } | null = null;
+
+    if (accessToken) {
+      const googleRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+
+      if (!googleRes.ok) {
+        res.status(401).json({ message: 'Token de acesso do Google inválido ou expirado.' });
+        return;
+      }
+
+      googleProfile = await googleRes.json();
+    } else if (credential) {
+      const googleRes = await fetch(
+        `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(credential)}`
+      );
+
+      if (!googleRes.ok) {
+        res.status(401).json({ message: 'Credencial do Google inválida ou expirada.' });
+        return;
+      }
+
+      googleProfile = await googleRes.json();
+
+      const expectedClientId =
+        process.env.GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID;
+      if (
+        expectedClientId &&
+        googleProfile?.aud &&
+        googleProfile.aud !== expectedClientId
+      ) {
+        res.status(401).json({ message: 'Client ID do Google não corresponde a esta aplicação.' });
+        return;
+      }
+    }
+
+    if (!googleProfile || !googleProfile.email) {
+      res.status(400).json({
+        message: 'Não foi possível obter o e-mail da sua conta Google.',
+      });
+      return;
+    }
+
+    const normalizedEmail = googleProfile.email.toLowerCase().trim();
+    const displayName =
+      googleProfile.name?.trim() || normalizedEmail.split('@')[0];
+
+    let user = await UserModel.findOne({ email: normalizedEmail });
+
+    if (!user) {
+      user = await UserModel.create({
+        name: displayName,
+        email: normalizedEmail,
+        googleId: googleProfile.sub,
+        avatarUrl: googleProfile.picture,
+      });
+    } else {
+      let changed = false;
+      if (!user.googleId && googleProfile.sub) {
+        user.googleId = googleProfile.sub;
+        changed = true;
+      }
+      if (!user.avatarUrl && googleProfile.picture) {
+        user.avatarUrl = googleProfile.picture;
+        changed = true;
+      }
+      if (changed) {
+        await user.save();
+      }
+    }
+
+    const userPayload = {
+      id: user._id.toString(),
+      name: user.name,
+      email: user.email,
+      avatarUrl: user.avatarUrl,
+    };
+
+    const token = signToken(userPayload);
+    res.json({ token, user: userPayload });
+  } catch (error) {
+    console.error('Erro em POST /api/auth/google:', error);
+    res.status(500).json({ message: 'Erro interno ao autenticar com o Google.' });
   }
 });
 
@@ -154,6 +268,7 @@ app.get('/api/auth/me', authenticateJWT, async (req: AuthenticatedRequest, res: 
         id: user._id.toString(),
         name: user.name,
         email: user.email,
+        avatarUrl: user.avatarUrl,
       },
     });
   } catch (error) {

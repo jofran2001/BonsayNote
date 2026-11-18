@@ -3,6 +3,7 @@ export interface User {
   _id?: string;
   name: string;
   email: string;
+  avatarUrl?: string;
   createdAt?: string;
 }
 
@@ -76,4 +77,3 @@ export interface TransferBonsaiPayload {
   targetEmail: string;
   giftLetterContent?: string;
 }
-

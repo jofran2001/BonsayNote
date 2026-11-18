@@ -67,6 +67,12 @@ export const api = {
         body: JSON.stringify(payload),
       }),
 
+    googleLogin: (payload: { accessToken?: string; credential?: string }) =>
+      request<AuthResponse>('/api/auth/google', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
+
     me: () => request<{ user: User }>('/api/auth/me'),
   },
 
@@ -179,4 +185,3 @@ function compressImageToBase64(
     reader.readAsDataURL(file);
   });
 }
-

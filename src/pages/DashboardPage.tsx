@@ -69,9 +69,18 @@ export const DashboardPage: React.FC = () => {
       <header className="sticky top-0 z-30 bg-[#0d130e]/90 backdrop-blur-md border-b border-[#223326]">
         <div className="max-w-md mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-[#152018] border border-[#223326] flex items-center justify-center text-[#4ade80]">
-              <Sprout className="w-5 h-5" />
-            </div>
+            {user?.avatarUrl ? (
+              <img
+                src={user.avatarUrl}
+                alt={user.name}
+                referrerPolicy="no-referrer"
+                className="w-10 h-10 rounded-2xl object-cover border border-[#4ade80]/40"
+              />
+            ) : (
+              <div className="w-10 h-10 rounded-2xl bg-[#152018] border border-[#223326] flex items-center justify-center text-[#4ade80]">
+                <Sprout className="w-5 h-5" />
+              </div>
+            )}
             <div>
               <p className="text-[11px] uppercase tracking-wider text-[#4ade80] font-semibold">
                 Jardim Pessoal

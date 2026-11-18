@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Sprout,
   Mail,
@@ -6,12 +6,40 @@ import {
   User as UserIcon,
   ArrowRight,
   AlertCircle,
+  Loader2,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
+interface GoogleTokenResponse {
+  access_token?: string;
+  error?: string;
+  error_description?: string;
+}
+
+interface GoogleTokenClient {
+  requestAccessToken: (overrideConfig?: { prompt?: string }) => void;
+}
+
+declare global {
+  interface Window {
+    google?: {
+      accounts?: {
+        oauth2?: {
+          initTokenClient: (config: {
+            client_id: string;
+            scope: string;
+            callback: (response: GoogleTokenResponse) => void;
+            error_callback?: (error: { type: string; message?: string }) => void;
+          }) => GoogleTokenClient;
+        };
+      };
+    };
+  }
+}
+
 export const AuthPage: React.FC = () => {
-  const { login, register } = useAuth();
+  const { login, register, loginWithGoogle } = useAuth();
   const { showToast } = useToast();
 
   const [mode, setMode] = useState<'login' | 'register'>('login');
@@ -19,7 +47,33 @@ export const AuthPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [googleSdkReady, setGoogleSdkReady] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim();
+
+  // Carrega o script oficial Google Identity Services
+  useEffect(() => {
+    if (window.google?.accounts?.oauth2) {
+      setGoogleSdkReady(true);
+      return;
+    }
+
+    const existingScript = document.getElementById('google-gsi-script');
+    if (existingScript) {
+      existingScript.addEventListener('load', () => setGoogleSdkReady(true));
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.id = 'google-gsi-script';
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    script.onload = () => setGoogleSdkReady(true);
+    document.head.appendChild(script);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,6 +94,65 @@ export const AuthPage: React.FC = () => {
       showToast(msg, 'error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = () => {
+    setErrorMsg(null);
+
+    if (!googleClientId) {
+      const msg =
+        'Configure a variável VITE_GOOGLE_CLIENT_ID no arquivo .env para ativar o Login com Google.';
+      setErrorMsg(msg);
+      showToast(msg, 'error');
+      return;
+    }
+
+    if (!googleSdkReady || !window.google?.accounts?.oauth2) {
+      const msg = 'Carregando serviço do Google. Tente novamente em um instante.';
+      setErrorMsg(msg);
+      showToast(msg, 'info');
+      return;
+    }
+
+    try {
+      setGoogleLoading(true);
+      const tokenClient = window.google.accounts.oauth2.initTokenClient({
+        client_id: googleClientId,
+        scope: 'openid email profile',
+        callback: async (response: GoogleTokenResponse) => {
+          if (response.error || !response.access_token) {
+            setGoogleLoading(false);
+            if (response.error !== 'access_denied') {
+              const errMsg =
+                response.error_description || 'Autenticação com Google cancelada.';
+              setErrorMsg(errMsg);
+            }
+            return;
+          }
+
+          try {
+            await loginWithGoogle({ accessToken: response.access_token });
+            showToast('Conectado com sua conta Google!', 'success');
+          } catch (err) {
+            const msg = (err as Error).message;
+            setErrorMsg(msg);
+            showToast(msg, 'error');
+          } finally {
+            setGoogleLoading(false);
+          }
+        },
+        error_callback: () => {
+          setGoogleLoading(false);
+        },
+      });
+
+      tokenClient.requestAccessToken({ prompt: 'select_account' });
+    } catch (err) {
+      setGoogleLoading(false);
+      const msg = (err as Error).message;
+      setErrorMsg(msg);
+      showToast(msg, 'error');
     }
   };
 
@@ -113,6 +226,49 @@ export const AuthPage: React.FC = () => {
             </div>
           )}
 
+          {/* Botão de Login Social Google */}
+          <button
+            type="button"
+            onClick={handleGoogleSignIn}
+            disabled={loading || googleLoading}
+            className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-2xl bg-[#0d130e] hover:bg-[#121b14] border border-[#223326] hover:border-[#4ade80]/50 text-sm font-medium text-stone-100 shadow transition-all active:scale-[0.99] disabled:opacity-50"
+          >
+            {googleLoading ? (
+              <Loader2 className="w-4 h-4 text-[#4ade80] animate-spin" />
+            ) : (
+              <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+                <path
+                  fill="#EA4335"
+                  d="M12 5c1.6 0 3 .6 4.1 1.7l3.1-3.1C17.3 1.8 14.8 1 12 1 7.4 1 3.5 3.6 1.6 7.4l3.7 2.8C6.2 7.2 8.9 5 12 5z"
+                />
+                <path
+                  fill="#4285F4"
+                  d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.8-2.4 3.6l3.7 2.9c2.2-2 3.7-5 3.7-8.7z"
+                />
+                <path
+                  fill="#FBBC05"
+                  d="M5.3 14.8c-.2-.8-.4-1.8-.4-2.8s.2-2 .4-2.8L1.6 6.4C.6 8.4 0 10.6 0 13s.6 4.6 1.6 6.6l3.7-2.8z"
+                />
+                <path
+                  fill="#34A853"
+                  d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3.1 0-5.8-2.1-6.7-5l-3.7 2.8C3.5 19.9 7.4 23 12 23z"
+                />
+              </svg>
+            )}
+            <span>
+              {googleLoading ? 'Conectando ao Google...' : 'Continuar com Google'}
+            </span>
+          </button>
+
+          {/* Divisor */}
+          <div className="my-5 flex items-center gap-3">
+            <div className="h-px flex-1 bg-[#223326]" />
+            <span className="text-[11px] uppercase tracking-wider text-stone-500">
+              ou com e-mail
+            </span>
+            <div className="h-px flex-1 bg-[#223326]" />
+          </div>
+
           <form onSubmit={handleSubmit} className="space-y-4">
             {mode === 'register' && (
               <div>
@@ -170,7 +326,7 @@ export const AuthPage: React.FC = () => {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || googleLoading}
               className="w-full inline-flex items-center justify-center gap-2 py-3.5 px-5 rounded-2xl text-sm font-semibold bg-[#4ade80] hover:bg-[#22c55e] text-[#0d130e] shadow-lg transition-all disabled:opacity-50"
             >
               <span>

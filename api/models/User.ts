@@ -4,7 +4,9 @@ export interface IUser extends Document {
   _id: mongoose.Types.ObjectId;
   name: string;
   email: string;
-  passwordHash: string;
+  passwordHash?: string;
+  googleId?: string;
+  avatarUrl?: string;
   createdAt: Date;
 }
 
@@ -24,7 +26,16 @@ const UserSchema = new Schema<IUser>(
     },
     passwordHash: {
       type: String,
-      required: [true, 'A senha é obrigatória'],
+      required: false,
+    },
+    googleId: {
+      type: String,
+      required: false,
+      index: true,
+    },
+    avatarUrl: {
+      type: String,
+      required: false,
     },
     createdAt: {
       type: Date,
@@ -38,4 +49,3 @@ const UserSchema = new Schema<IUser>(
 
 export const UserModel: Model<IUser> =
   mongoose.models.User || mongoose.model<IUser>('User', UserSchema);
-
