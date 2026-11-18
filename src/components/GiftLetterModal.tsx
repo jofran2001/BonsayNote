@@ -56,7 +56,7 @@ export const GiftLetterModal: React.FC<GiftLetterModalProps> = ({
     }
   };
 
-  const defaultPoeticMessage = `No estilo Sōkan (双幹), dois troncos emergem de uma mesma raiz e caminham juntos através das estações.\n\nEsta árvore foi cultivada com paciência e dedicação desde suas primeiras brotações para celebrar laços que permanecem vivos com o tempo.`;
+  const hasLetter = Boolean(bonsai.giftLetterContent?.trim());
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
@@ -102,17 +102,30 @@ export const GiftLetterModal: React.FC<GiftLetterModalProps> = ({
         {/* Conteúdo da Carta em Pergaminho Escuro */}
         {!isEditing ? (
           <div className="py-6">
-            <div className="relative px-3 py-2">
-              <span
-                className="font-serif text-5xl text-[#c28854]/20 absolute -top-3 left-0 select-none"
-                aria-hidden="true"
-              >
-                “
-              </span>
-              <p className="font-serif text-lg sm:text-xl leading-relaxed text-stone-200 whitespace-pre-line relative z-10 italic">
-                {bonsai.giftLetterContent?.trim() || defaultPoeticMessage}
-              </p>
-            </div>
+            {hasLetter ? (
+              <div className="relative px-3 py-2">
+                <span
+                  className="font-serif text-5xl text-[#c28854]/20 absolute -top-3 left-0 select-none"
+                  aria-hidden="true"
+                >
+                  “
+                </span>
+                <p className="font-serif text-lg sm:text-xl leading-relaxed text-stone-200 whitespace-pre-line relative z-10 italic">
+                  {bonsai.giftLetterContent!.trim()}
+                </p>
+              </div>
+            ) : (
+              <div className="text-center py-6 px-4">
+                <p className="font-serif text-lg text-stone-400 italic">
+                  Nenhuma carta foi escrita para este bonsai ainda.
+                </p>
+                {canEdit && (
+                  <p className="text-xs text-stone-500 mt-1">
+                    Clique em "Escrever Carta" abaixo para registrar a simbologia e dedicatória desta árvore.
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* Rodapé com Assinatura e Data do Presente */}
             <div className="mt-6 pt-5 border-t border-[#3d3326]/90 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-stone-400">
@@ -130,7 +143,11 @@ export const GiftLetterModal: React.FC<GiftLetterModalProps> = ({
 
               <div className="flex items-center gap-1.5 text-stone-400 bg-[#241f19] px-3 py-1.5 rounded-xl border border-[#3d3326]">
                 <Calendar className="w-3.5 h-3.5 text-[#c28854]" />
-                <span>{ bonsai.giftedAt ? `Presenteado em ${formattedDate}` : `Iniciado em ${formattedDate}` }</span>
+                <span>
+                  {bonsai.giftedAt
+                    ? `Presenteado em ${formattedDate}`
+                    : `Iniciado em ${formattedDate}`}
+                </span>
               </div>
             </div>
 
@@ -140,13 +157,13 @@ export const GiftLetterModal: React.FC<GiftLetterModalProps> = ({
                 <button
                   type="button"
                   onClick={() => {
-                    setLetterText(bonsai.giftLetterContent || defaultPoeticMessage);
+                    setLetterText(bonsai.giftLetterContent || '');
                     setIsEditing(true);
                   }}
                   className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-medium bg-[#26221c] hover:bg-[#312b23] text-[#e6b37e] border border-[#c28854]/30 transition-colors"
                 >
                   <Edit3 className="w-3.5 h-3.5" />
-                  Editar Carta
+                  {hasLetter ? 'Editar Carta' : 'Escrever Carta'}
                 </button>
               )}
 
@@ -155,7 +172,7 @@ export const GiftLetterModal: React.FC<GiftLetterModalProps> = ({
                 onClick={onClose}
                 className="px-5 py-2.5 rounded-xl text-xs font-semibold bg-[#c28854] hover:bg-[#a16207] text-[#0d130e] transition-colors"
               >
-                Guardar no Coração
+                Fechar
               </button>
             </div>
           </div>
@@ -198,4 +215,3 @@ export const GiftLetterModal: React.FC<GiftLetterModalProps> = ({
     </div>
   );
 };
-

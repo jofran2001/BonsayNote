@@ -5,8 +5,6 @@ import {
   Lock,
   User as UserIcon,
   ArrowRight,
-  Gift,
-  Sparkles,
   AlertCircle,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -40,30 +38,6 @@ export const AuthPage: React.FC = () => {
       const msg = (err as Error).message;
       setErrorMsg(msg);
       showToast(msg, 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDemoAccess = async (
-    demoName: string,
-    demoEmail: string,
-    demoPass: string
-  ) => {
-    setErrorMsg(null);
-    setLoading(true);
-    try {
-      await login(demoEmail, demoPass);
-      showToast(`Conectado como ${demoName}!`, 'success');
-    } catch {
-      // Caso esteja em um cluster MongoDB Atlas recém-criado sem seed, cria a conta demo automaticamente
-      try {
-        await register(demoName, demoEmail, demoPass);
-        showToast(`Conta demo de ${demoName} criada e conectada!`, 'success');
-      } catch (err) {
-        const msg = (err as Error).message;
-        setErrorMsg(msg);
-      }
     } finally {
       setLoading(false);
     }
@@ -151,7 +125,7 @@ export const AuthPage: React.FC = () => {
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="Ex: Kenji Takahashi"
+                    placeholder="Digite seu nome"
                     className="w-full pl-10 pr-4 py-3 rounded-2xl bg-[#0d130e] border border-[#223326] focus:border-[#4ade80] text-sm text-stone-100 placeholder-stone-500 focus:outline-none"
                     required
                   />
@@ -199,59 +173,16 @@ export const AuthPage: React.FC = () => {
               disabled={loading}
               className="w-full inline-flex items-center justify-center gap-2 py-3.5 px-5 rounded-2xl text-sm font-semibold bg-[#4ade80] hover:bg-[#22c55e] text-[#0d130e] shadow-lg transition-all disabled:opacity-50"
             >
-              <span>{loading ? 'Aguarde...' : mode === 'login' ? 'Entrar no Jardim' : 'Criar Minha Conta'}</span>
+              <span>
+                {loading
+                  ? 'Aguarde...'
+                  : mode === 'login'
+                  ? 'Entrar no Jardim'
+                  : 'Criar Minha Conta'}
+              </span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </form>
-
-          {/* Acesso Rápido de Demonstração (Cultivador vs Presenteado) */}
-          <div className="mt-6 pt-5 border-t border-[#223326]">
-            <p className="text-[11px] uppercase tracking-wider text-stone-400 font-semibold text-center mb-3 flex items-center justify-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-[#c28854]" />
-              Acesso Rápido para Experimentar o Fluxo
-            </p>
-            <div className="grid grid-cols-2 gap-2.5">
-              <button
-                type="button"
-                disabled={loading}
-                onClick={() =>
-                  handleDemoAccess('Kenji Takahashi', 'cultivador@bonsai.app', '123456')
-                }
-                className="flex flex-col items-start p-3 rounded-2xl bg-[#0d130e] border border-[#223326] hover:border-[#4ade80]/50 text-left transition-colors"
-              >
-                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#4ade80]">
-                  <Sprout className="w-3.5 h-3.5" />
-                  Cultivador
-                </span>
-                <span className="text-xs font-medium text-stone-200 mt-0.5">
-                  Kenji Takahashi
-                </span>
-                <span className="text-[10px] text-stone-400 truncate w-full">
-                  cultivador@bonsai.app
-                </span>
-              </button>
-
-              <button
-                type="button"
-                disabled={loading}
-                onClick={() =>
-                  handleDemoAccess('Helena Moreira', 'helena@bonsai.app', '123456')
-                }
-                className="flex flex-col items-start p-3 rounded-2xl bg-[#0d130e] border border-[#223326] hover:border-[#c28854]/50 text-left transition-colors"
-              >
-                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#e6b37e]">
-                  <Gift className="w-3.5 h-3.5 text-[#c28854]" />
-                  Presenteada
-                </span>
-                <span className="text-xs font-medium text-stone-200 mt-0.5">
-                  Helena Moreira
-                </span>
-                <span className="text-[10px] text-stone-400 truncate w-full">
-                  helena@bonsai.app
-                </span>
-              </button>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -261,4 +192,3 @@ export const AuthPage: React.FC = () => {
     </div>
   );
 };
-

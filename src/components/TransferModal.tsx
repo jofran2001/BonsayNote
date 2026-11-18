@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Gift, Mail, ScrollText, AlertCircle, Send, Sparkles } from 'lucide-react';
+import { X, Gift, Mail, ScrollText, AlertCircle, Send } from 'lucide-react';
 import { Bonsai } from '../types';
 import { api } from '../services/api';
 import { useToast } from '../context/ToastContext';
@@ -20,8 +20,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({
   const { showToast } = useToast();
   const [targetEmail, setTargetEmail] = useState('');
   const [giftLetterContent, setGiftLetterContent] = useState(
-    bonsai.giftLetterContent ||
-      `No estilo ${bonsai.style}, esta árvore foi cultivada com carinho e agora passa a viver sob seus cuidados. Que cada nova brotação traga boas memórias!`
+    bonsai.giftLetterContent || ''
   );
   const [submitting, setSubmitting] = useState(false);
   const [inlineError, setInlineError] = useState<string | null>(null);
@@ -112,26 +111,10 @@ export const TransferModal: React.FC<TransferModalProps> = ({
                   setTargetEmail(e.target.value);
                   setInlineError(null);
                 }}
-                placeholder="ex: helena@bonsai.app"
+                placeholder="email@destinatario.com"
                 className="w-full pl-10 pr-4 py-3 rounded-2xl bg-[#0d130e] border border-[#223326] focus:border-[#4ade80] text-sm text-stone-100 placeholder-stone-500 focus:outline-none"
                 required
               />
-            </div>
-
-            {/* Atalho rápido para testar com a conta destinatária demo */}
-            <div className="mt-2 flex items-center justify-between text-[11px] text-stone-400">
-              <span>Para teste rápido:</span>
-              <button
-                type="button"
-                onClick={() => {
-                  setTargetEmail('helena@bonsai.app');
-                  setInlineError(null);
-                }}
-                className="inline-flex items-center gap-1 text-[#c28854] hover:text-[#e6b37e] underline"
-              >
-                <Sparkles className="w-3 h-3" />
-                Usar helena@bonsai.app
-              </button>
             </div>
           </div>
 
@@ -171,4 +154,3 @@ export const TransferModal: React.FC<TransferModalProps> = ({
     </div>
   );
 };
-

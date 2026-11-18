@@ -29,21 +29,6 @@ const BONSAI_STYLES = [
   'Livre',
 ];
 
-const PRESET_COVERS = [
-  {
-    label: 'Buxus Sōkan',
-    url: 'https://images.unsplash.com/photo-1512428813834-c702c7702b78?auto=format&fit=crop&w=1000&q=80',
-  },
-  {
-    label: 'Acer Palmatum',
-    url: 'https://images.unsplash.com/photo-1599598425947-5202edd56bdb?auto=format&fit=crop&w=1000&q=80',
-  },
-  {
-    label: 'Juniperus Procumbens',
-    url: 'https://images.unsplash.com/photo-1509423350716-97f9360b4e09?auto=format&fit=crop&w=1000&q=80',
-  },
-];
-
 export const CreateBonsaiModal: React.FC<CreateBonsaiModalProps> = ({
   isOpen,
   onClose,
@@ -59,8 +44,8 @@ export const CreateBonsaiModal: React.FC<CreateBonsaiModalProps> = ({
   const [startDate, setStartDate] = useState(
     new Date().toISOString().split('T')[0]
   );
-  const [coverImageUrl, setCoverImageUrl] = useState(PRESET_COVERS[0].url);
-  const [isGiftPlanned, setIsGiftPlanned] = useState(true);
+  const [coverImageUrl, setCoverImageUrl] = useState('');
+  const [isGiftPlanned, setIsGiftPlanned] = useState(false);
   const [giftLetterContent, setGiftLetterContent] = useState('');
   const [initialLogNotes, setInitialLogNotes] = useState('');
   const [uploading, setUploading] = useState(false);
@@ -91,6 +76,11 @@ export const CreateBonsaiModal: React.FC<CreateBonsaiModalProps> = ({
       return;
     }
 
+    if (!coverImageUrl) {
+      showToast('Adicione uma foto de capa para o seu bonsai.', 'error');
+      return;
+    }
+
     try {
       setSubmitting(true);
       const created = await api.bonsais.create({
@@ -101,15 +91,21 @@ export const CreateBonsaiModal: React.FC<CreateBonsaiModalProps> = ({
         startDate,
         isGift: isGiftPlanned,
         giftLetterContent: isGiftPlanned ? giftLetterContent.trim() : '',
-        initialLogTitle: 'Início do Cultivo e Preparo do Solo',
+        initialLogTitle: 'Início do Cultivo',
         initialLogNotes:
           initialLogNotes.trim() ||
-          `Início da jornada de cultivo de ${name.trim()} (${species.trim()}) no estilo ${style}.`,
+          `Início do cultivo de ${name.trim()} (${species.trim()}) no estilo ${style}.`,
         initialLogCategory: 'transplante',
       });
 
       showToast(`Bonsai "${created.name}" cadastrado com sucesso!`, 'success');
       onCreated(created);
+      setName('');
+      setSpecies('');
+      setCoverImageUrl('');
+      setGiftLetterContent('');
+      setInitialLogNotes('');
+      setIsGiftPlanned(false);
       onClose();
     } catch (err) {
       showToast((err as Error).message, 'error');
@@ -147,7 +143,7 @@ export const CreateBonsaiModal: React.FC<CreateBonsaiModalProps> = ({
           {/* Foto de Capa */}
           <div>
             <label className="block text-xs font-medium text-stone-300 mb-2">
-              Foto de Capa da Árvore
+              Foto de Capa da Árvore *
             </label>
             <input
               ref={cameraRef}
@@ -165,67 +161,65 @@ export const CreateBonsaiModal: React.FC<CreateBonsaiModalProps> = ({
               className="hidden"
             />
 
-            <div className="relative h-40 rounded-2xl overflow-hidden bg-[#0d130e] border border-[#223326] mb-2">
-              <img
-                src={coverImageUrl}
-                alt="Capa do bonsai"
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute bottom-2.5 right-2.5 flex items-center gap-1.5">
+            {coverImageUrl ? (
+              <div className="relative h-44 rounded-2xl overflow-hidden bg-[#0d130e] border border-[#4ade80]/40">
+                <img
+                  src={coverImageUrl}
+                  alt="Capa do bonsai"
+                  className="w-full h-full object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={() => setCoverImageUrl('')}
+                  className="absolute top-2.5 right-2.5 px-3 py-1 rounded-full text-xs font-medium bg-black/75 text-stone-200 border border-white/20 hover:bg-black"
+                >
+                  Trocar foto
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2.5">
                 <button
                   type="button"
                   onClick={() => cameraRef.current?.click()}
                   disabled={uploading}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-medium bg-[#0d130e]/90 text-[#4ade80] border border-[#4ade80]/40 backdrop-blur-md"
+                  className="flex flex-col items-center justify-center gap-2 p-5 rounded-2xl bg-[#0d130e] border border-[#223326] hover:border-[#4ade80]/60 text-stone-200 transition-colors"
                 >
                   {uploading ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <Loader2 className="w-6 h-6 text-[#4ade80] animate-spin" />
                   ) : (
-                    <Camera className="w-3.5 h-3.5" />
+                    <Camera className="w-6 h-6 text-[#4ade80]" />
                   )}
-                  Câmera
+                  <span className="text-xs font-medium">Tirar Foto</span>
                 </button>
+
                 <button
                   type="button"
                   onClick={() => galleryRef.current?.click()}
                   disabled={uploading}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-medium bg-[#0d130e]/90 text-stone-200 border border-[#223326] backdrop-blur-md"
+                  className="flex flex-col items-center justify-center gap-2 p-5 rounded-2xl bg-[#0d130e] border border-[#223326] hover:border-[#c28854]/60 text-stone-200 transition-colors"
                 >
-                  <ImageIcon className="w-3.5 h-3.5 text-[#c28854]" />
-                  Galeria
+                  {uploading ? (
+                    <Loader2 className="w-6 h-6 text-[#c28854] animate-spin" />
+                  ) : (
+                    <ImageIcon className="w-6 h-6 text-[#c28854]" />
+                  )}
+                  <span className="text-xs font-medium">Escolher da Galeria</span>
                 </button>
               </div>
-            </div>
-
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
-              {PRESET_COVERS.map((preset) => (
-                <button
-                  key={preset.label}
-                  type="button"
-                  onClick={() => setCoverImageUrl(preset.url)}
-                  className={`px-2.5 py-1 rounded-lg text-[11px] font-medium border shrink-0 transition-colors ${
-                    coverImageUrl === preset.url
-                      ? 'bg-[#4ade80]/15 border-[#4ade80] text-[#4ade80]'
-                      : 'bg-[#0d130e] border-[#223326] text-stone-400'
-                  }`}
-                >
-                  {preset.label}
-                </button>
-              ))}
-            </div>
+            )}
           </div>
 
           {/* Nome e Espécie */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium text-stone-300 mb-1">
-                Nome Afetivo do Bonsai
+                Nome do Bonsai *
               </label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder='Ex: Sōkan da Amizade'
+                placeholder="Ex: Sōkan da Amizade"
                 className="w-full px-3.5 py-2.5 rounded-2xl bg-[#0d130e] border border-[#223326] focus:border-[#4ade80] text-sm text-stone-100 placeholder-stone-500 focus:outline-none"
                 required
               />
@@ -233,7 +227,7 @@ export const CreateBonsaiModal: React.FC<CreateBonsaiModalProps> = ({
 
             <div>
               <label className="block text-xs font-medium text-stone-300 mb-1">
-                Espécie Botânica
+                Espécie Botânica *
               </label>
               <input
                 type="text"
@@ -281,13 +275,13 @@ export const CreateBonsaiModal: React.FC<CreateBonsaiModalProps> = ({
           {/* Primeiro Registro no Solo */}
           <div>
             <label className="block text-xs font-medium text-stone-300 mb-1">
-              Anotação do 1º Cuidado no Solo (Poda estrutural, raízes, selante)
+              Anotação do 1º Cuidado no Solo (opcional)
             </label>
             <textarea
               rows={2}
               value={initialLogNotes}
               onChange={(e) => setInitialLogNotes(e.target.value)}
-              placeholder="Ex: Limpeza de nebari, poda estrutural dos dois troncos e aplicação de pasta cicatrizante..."
+              placeholder="Ex: Limpeza de nebari, poda estrutural e aplicação de pasta cicatrizante..."
               className="w-full px-3.5 py-2 rounded-2xl bg-[#0d130e] border border-[#223326] focus:border-[#4ade80] text-xs text-stone-100 placeholder-stone-500 focus:outline-none"
             />
           </div>
@@ -312,7 +306,7 @@ export const CreateBonsaiModal: React.FC<CreateBonsaiModalProps> = ({
                 rows={3}
                 value={giftLetterContent}
                 onChange={(e) => setGiftLetterContent(e.target.value)}
-                placeholder="Escreva a simbologia da árvore e a dedicatória para quem receberá este bonsai no futuro..."
+                placeholder="Escreva a simbologia da árvore e a dedicatória para quem receberá este bonsai..."
                 className="mt-2.5 w-full rounded-xl bg-[#12100d] border border-[#3d3326] focus:border-[#c28854] px-3 py-2 font-serif text-sm text-stone-100 placeholder-stone-500 focus:outline-none"
               />
             )}
@@ -340,4 +334,3 @@ export const CreateBonsaiModal: React.FC<CreateBonsaiModalProps> = ({
     </div>
   );
 };
-
