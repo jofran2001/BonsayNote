@@ -1,0 +1,19 @@
+{
+  "name": "Bonsai Diary — Cultivo & Presente",
+  "short_name": "Bonsai Diary",
+  "description": "Aplicativo mobile-first para registrar o ciclo de vida, cuidados e presente de bonsais.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0d130e",
+  "theme_color": "#0d130e",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/bonsai-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
+
